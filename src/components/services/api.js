@@ -1,5 +1,8 @@
-import { create } from 'axios'
+import axios from 'axios'
 
-const BASE_URL = 'https://todo-task-api.herokuapp.com/api/'
+const instance = axios.create();
 
-export default create({ baseUrl: BASE_URL });
+const BASE_URL = 'https://todo-task-api.herokuapp.com/'
+instance.defaults.baseURL = BASE_URL
+
+export default instance;

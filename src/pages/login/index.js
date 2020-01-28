@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useHistory } from 'react-router-dom'
+import { useCookies } from 'react-cookie'
 import api from '../../components/services/api'
+import CookiesName from '../../components/util/cookiesName'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSpinner } from '@fortawesome/free-solid-svg-icons'
@@ -13,11 +15,20 @@ function Login() {
     const INITIAL_STATE_USER = { email: '', password: '' }
 
     const [user, setUser] = useState(INITIAL_STATE_USER)
+    const [submitEvent, setSubmitEvent] = useState(null)
     const [inLoging, setInLogin] = useState(false)
     const [isReadyToLogin, setIsReadyToLogin] = useState(false)
     const [error, setError] = useState(INITIAL_STATE_ERROR)
+    const [, setCookie] = useCookies([CookiesName.API_TOKEN])
 
     useEffect(verifyIsReadToLogin, [user])
+    useEffect(() => {
+        if (submitEvent) {
+            submitEvent.preventDefault()
+            window.removeEventListener('submit', submitEvent)
+        }
+    }, [submitEvent])
+
     const history = useHistory()
 
     function setInputs({ email = user.email, password = user.password }) {
@@ -32,34 +43,28 @@ function Login() {
         }
     }
 
-    async function handleLogin() {
-        setInLogin(true)
-        const { data } = await api({
-            method: 'post',
-            data: {
-                email: user.email,
-                password: user.password
-            },
-            url: '/api/auth'
-        })
+    async function handleSubmit(event) {
 
+        setSubmitEvent(event)
+        setInLogin(true)
+        const { data } = await api.post('/api/auth', { email: user.email, password: user.password })
         try {
-            if (data.code !== '000')
+            if (data.code !== '000') {
                 throw data
-            else
+            } else {
                 setError(INITIAL_STATE_ERROR)
+                setCookie(CookiesName.API_TOKEN, data.token)
                 history.push('/main')
+            }
         } catch (err) {
             setError(err)
-        } finally {
             setInLogin(false)
         }
-
     }
 
     return (
         <div className="loginContainer">
-            <form onSubmit={handleLogin}>
+            <form onSubmit={handleSubmit}>
                 <div className="container align-self-center">
 
                     <div className="card card-body col-10 col-lg-4 offset-1 offset-lg-4 align-self-center">
@@ -85,7 +90,7 @@ function Login() {
                                 </div>
                             </div>
                             <div className="col-12 align-self-center">
-                                <button type="submit" className="btn btn-primary btn-block" onClick={handleLogin} disabled={inLoging || !isReadyToLogin}>
+                                <button type="submit" className="btn btn-primary btn-block" onClick={handleSubmit} disabled={inLoging || !isReadyToLogin}>
                                     {inLoging ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Sign in'}
                                 </button>
                             </div>
